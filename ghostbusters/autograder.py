@@ -14,7 +14,7 @@
 
 # imports from python standard library
 import grading
-import imp
+import importlib
 import optparse
 import os
 import re
@@ -403,12 +403,15 @@ if __name__ == '__main__':
     # moduleCodeDict['projectTestClasses'] = readFile(options.testCaseCode, root=options.codeRoot)
     # moduleDict = loadModuleDict(moduleCodeDict)
 
+
     moduleDict = {}
     for cp in codePaths:
         moduleName = re.match('.*?([^/]*)\.py', cp).group(1)
-        moduleDict[moduleName] = loadModuleFile(moduleName, os.path.join(options.codeRoot, cp))
+        #oduleDict[moduleName] = loadModuleFile(moduleName, os.path.join(options.codeRoot, cp))
+        moduleDict[moduleName] = importlib.import_module(moduleName)
     moduleName = re.match('.*?([^/]*)\.py', options.testCaseCode).group(1)
-    moduleDict['projectTestClasses'] = loadModuleFile(moduleName, os.path.join(options.codeRoot, options.testCaseCode))
+    #moduleDict['projectTestClasses'] = loadModuleFile(moduleName, os.path.join(options.codeRoot, options.testCaseCode))
+    moduleDict['projectTestClasses'] = importlib.import_module(moduleName)
 
     # BEGIN SOLUTION NO PROMPT
     if options.generatePublicTests:
