@@ -152,8 +152,9 @@ def uniformCostSearch(problem):
         if state not in visited:
             visited.add(state)
 
+            # Next state
             for successor in problem.getSuccessors(state):
-                priorityQueue.push((successor[0], path + [successor[1]]), problem.getCostOfActions(path) + successor[2])
+                priorityQueue.push((successor[0], path + [successor[1]]), problem.getCostOfActions(path + [successor[1]]))
 
 def nullHeuristic(state, problem=None):
     """
@@ -182,8 +183,10 @@ def aStarSearch(problem, heuristic=nullHeuristic):
         if state not in visited:
             visited.add(state)
 
+            # Next state
             for successor in problem.getSuccessors(state):
-                priorityQueue.push((successor[0], path + [successor[1]]), problem.getCostOfActions(path) + heuristic(state, problem) + successor[2])
+                if successor[0] not in visited:
+                    priorityQueue.push((successor[0], path + [successor[1]]), problem.getCostOfActions(path + [successor[1]]) + heuristic(successor[0], problem))
 
 
 # Abbreviations
