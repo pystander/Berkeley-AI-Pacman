@@ -9,4 +9,4 @@ The Pac-Man AI Projects from UC Berkeley [CS188 Fall 2018](https://inst.eecs.ber
 - [ ] Multi-Agent Search
 - [x] Reinforcement Learning
 - [x] Ghostbusters
-- [ ] Machine Learning
+- [x] Machine Learning
