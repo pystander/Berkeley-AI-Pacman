@@ -70,7 +70,7 @@ class RegressionModel(object):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
         # Learning rate
-        self.alpha = 0.05
+        self.alpha = 0.1
 
         # Model parameters
         self.w1 = nn.Parameter(1, 64)
@@ -119,7 +119,7 @@ class RegressionModel(object):
 
         # Loss <= 0.02
         while loss > 0.02:
-            for x, y in dataset.iterate_once(batch_size=20):
+            for x, y in dataset.iterate_once(batch_size=50):
                 loss = self.get_loss(x, y)
                 gradients = nn.gradients(loss, self.parameters)
 
@@ -147,14 +147,14 @@ class DigitClassificationModel(object):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
         # Learning rate
-        self.alpha = 0.1
+        self.alpha = 0.05
 
         # Model parameters
         self.w1 = nn.Parameter(784, 196)
         self.b1 = nn.Parameter(1, 196)
-        self.w2 = nn.Parameter(196, 49)
-        self.b2 = nn.Parameter(1, 49)
-        self.w3 = nn.Parameter(49, 10)
+        self.w2 = nn.Parameter(196, 64)
+        self.b2 = nn.Parameter(1, 64)
+        self.w3 = nn.Parameter(64, 10)
         self.b3 = nn.Parameter(1, 10)
         self.parameters = [self.w1, self.b1, self.w2, self.b2, self.w3, self.b3]
 
@@ -202,10 +202,12 @@ class DigitClassificationModel(object):
         "*** YOUR CODE HERE ***"
         validAccuracy = 0
 
+        # Accuracy >= 97%
         while validAccuracy < 0.97:
-            for x, y in dataset.iterate_once(batch_size=50):
+            for x, y in dataset.iterate_once(batch_size=32):
                 gradients = nn.gradients(self.get_loss(x, y), self.parameters)
 
+                # Update parameters
                 for i in range(len(self.parameters)):
                     self.parameters[i].update(gradients[i], -self.alpha)
 
@@ -229,6 +231,17 @@ class LanguageIDModel(object):
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        # Learning rate
+        self.alpha = 0.2
+
+        # Model parameters
+        self.w = nn.Parameter(self.num_chars, 256)
+        self.b = nn.Parameter(1, 256)
+        self.w_hidden = nn.Parameter(256, 256)
+        self.b_hidden = nn.Parameter(1, 256)
+        self.w_output = nn.Parameter(256, 5)
+        self.b_output = nn.Parameter(1, 5)
+        self.parameters = [self.w, self.b, self.w_hidden, self.b_hidden, self.w_output, self.b_output]
 
     def run(self, xs):
         """
@@ -260,6 +273,15 @@ class LanguageIDModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        h_i = nn.ReLU(nn.Linear(xs[0], self.w))
+
+        # Iterate xs
+        for x in xs[1:]:
+            # z = nn.Add(nn.Linear(x, W), nn.Linear(h, W_hidden))
+            h_i = nn.ReLU(nn.Add(nn.AddBias(nn.Linear(x, self.w), self.b), nn.AddBias(nn.Linear(h_i, self.w_hidden), self.b_hidden)))
+
+        # Return RNN
+        return nn.AddBias(nn.Linear(h_i, self.w_output), self.b_output)
 
     def get_loss(self, xs, y):
         """
@@ -276,9 +298,22 @@ class LanguageIDModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        return nn.SoftmaxLoss(self.run(xs), y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        validAccuracy = 0
+
+        # Accuracy >= 81%
+        while validAccuracy < 0.81:
+            for x, y in dataset.iterate_once(batch_size=50):
+                gradients = nn.gradients(self.get_loss(x, y), self.parameters)
+
+                # Update parameters
+                for i in range(len(self.parameters)):
+                    self.parameters[i].update(gradients[i], -self.alpha)
+
+            validAccuracy = dataset.get_validation_accuracy()
