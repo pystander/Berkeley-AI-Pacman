@@ -74,7 +74,29 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        # Compute min distance between pacman and ghost
+        minGhostDist = float('inf')
+
+        for ghostState in newGhostStates:
+            d = manhattanDistance(newPos, ghostState.configuration.pos)
+
+            if d < minGhostDist:
+                minGhostDist = d
+
+        # Avoid suicide
+        if minGhostDist == 0:
+            return -500
+
+        # Compute min distance between pacman and food
+        minFoodDist = float('inf')
+
+        for food in newFood.asList():
+            d = manhattanDistance(newPos, food)
+
+            if d < minFoodDist:
+                minFoodDist = d
+
+        return successorGameState.getScore() + 10.0 / minFoodDist
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -135,7 +157,54 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        maxVal = float('-inf')
+        maxAction = None
+
+        # Start with pacman
+        for action in gameState.getLegalActions(0):
+            value = self.getMin(gameState.generateSuccessor(0, action), 0, 1)
+
+            if value > maxVal:
+                maxVal = value
+                maxAction = action
+
+        return maxAction
+
+    def getMax(self, gameState, depth, agentIndex):
+        # Terminal state
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState)
+
+        maxVal = float('-inf')
+
+        # Pacman
+        for action in gameState.getLegalActions(agentIndex):
+            value = self.getMin(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)
+
+            if value > maxVal:
+                maxVal = value
+
+        return maxVal
+
+    def getMin(self, gameState, depth, agentIndex):
+        # Terminal state
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState)
+
+        minVal = float('inf')
+
+        # Ghosts
+        for action in gameState.getLegalActions(agentIndex):
+            # Last ghost
+            if agentIndex == gameState.getNumAgents() - 1:
+                value = self.getMax(gameState.generateSuccessor(agentIndex, action), depth + 1, 0)
+            else:
+                value = self.getMin(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)
+
+            if value < minVal:
+                minVal = value
+
+        return minVal
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
