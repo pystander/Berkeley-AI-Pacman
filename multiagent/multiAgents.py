@@ -96,7 +96,7 @@ class ReflexAgent(Agent):
             if d < minFoodDist:
                 minFoodDist = d
 
-        return successorGameState.getScore() + 10.0 / minFoodDist
+        return successorGameState.getScore() + 10.0 / minFoodDist - 20.0 / minGhostDist + sum(newScaredTimes)
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -157,54 +157,47 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
+        return self.getMax(gameState)[1]
+
+    def getMax(self, gameState, depth=0, agentIndex=0):
+        # Terminal state
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState), None
+
         maxVal = float('-inf')
         maxAction = None
 
-        # Start with pacman
-        for action in gameState.getLegalActions(0):
-            value = self.getMin(gameState.generateSuccessor(0, action), 0, 1)
+        # Pacman
+        for action in gameState.getLegalActions(agentIndex):
+            value = self.getMin(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)[0]
 
             if value > maxVal:
                 maxVal = value
                 maxAction = action
 
-        return maxAction
+        return maxVal, maxAction
 
-    def getMax(self, gameState, depth, agentIndex):
+    def getMin(self, gameState, depth=0, agentIndex=1):
         # Terminal state
         if gameState.isWin() or gameState.isLose() or depth == self.depth:
-            return self.evaluationFunction(gameState)
-
-        maxVal = float('-inf')
-
-        # Pacman
-        for action in gameState.getLegalActions(agentIndex):
-            value = self.getMin(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)
-
-            if value > maxVal:
-                maxVal = value
-
-        return maxVal
-
-    def getMin(self, gameState, depth, agentIndex):
-        # Terminal state
-        if gameState.isWin() or gameState.isLose() or depth == self.depth:
-            return self.evaluationFunction(gameState)
+            return self.evaluationFunction(gameState), None
 
         minVal = float('inf')
+        minAction = None
 
         # Ghosts
         for action in gameState.getLegalActions(agentIndex):
             # Last ghost
             if agentIndex == gameState.getNumAgents() - 1:
-                value = self.getMax(gameState.generateSuccessor(agentIndex, action), depth + 1, 0)
+                value = self.getMax(gameState.generateSuccessor(agentIndex, action), depth + 1, 0)[0]
             else:
-                value = self.getMin(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)
+                value = self.getMin(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)[0]
 
             if value < minVal:
                 minVal = value
+                minAction = action
 
-        return minVal
+        return minVal, minAction
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -216,7 +209,60 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Start with pacman
+        return self.getMax(gameState)[1]
+
+    def getMax(self, gameState, depth=0, agentIndex=0, alpha=float('-inf'), beta=float('inf')):
+        # Terminal state
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState), None
+
+        maxVal = float('-inf')
+        maxAction = None
+
+        # Pacman
+        for action in gameState.getLegalActions(agentIndex):
+            value = self.getMin(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1, alpha, beta)[0]
+
+            if value > maxVal:
+                maxVal = value
+                maxAction = action
+
+            # Pruning
+            if value > beta:
+                return value, action
+
+            alpha = max(alpha, maxVal)
+
+        return maxVal, maxAction
+
+    def getMin(self, gameState, depth=0, agentIndex=1, alpha=float('-inf'), beta=float('inf')):
+        # Terminal state
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState), None
+
+        minVal = float('inf')
+        minAction = None
+
+        # Ghosts
+        for action in gameState.getLegalActions(agentIndex):
+            # Last ghost
+            if agentIndex == gameState.getNumAgents() - 1:
+                value = self.getMax(gameState.generateSuccessor(agentIndex, action), depth + 1, 0, alpha, beta)[0]
+            else:
+                value = self.getMin(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1, alpha, beta)[0]
+
+            if value < minVal:
+                minVal = value
+                minAction = action
+
+            # Pruning
+            if value < alpha:
+                return value, action
+
+            beta = min(beta, minVal)
+
+        return minVal, minAction
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -231,7 +277,48 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Start with pacman
+        return self.getMax(gameState)[1]
+
+    def getMax(self, gameState, depth=0, agentIndex=0):
+        # Terminal state
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState), None
+
+        maxVal = float('-inf')
+        maxAction = None
+
+        # Pacman
+        for action in gameState.getLegalActions(agentIndex):
+            value = self.getExpected(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)
+
+            if value > maxVal:
+                maxVal = value
+                maxAction = action
+
+        return maxVal, maxAction
+
+    def getExpected(self, gameState, depth=0, agentIndex=1):
+        # Terminal state
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState)
+
+        # Expect value
+        chance = 0
+
+        # Ghosts
+        legalActions = gameState.getLegalActions(agentIndex)
+
+        for action in legalActions:
+            # Last ghost
+            if agentIndex == gameState.getNumAgents() - 1:
+                value = self.getMax(gameState.generateSuccessor(agentIndex, action), depth + 1, 0)[0]
+            else:
+                value = self.getExpected(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)
+
+            chance += value
+
+        return chance / len(legalActions)
 
 def betterEvaluationFunction(currentGameState):
     """
@@ -241,7 +328,35 @@ def betterEvaluationFunction(currentGameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Useful information you can extract from a GameState (pacman.py)
+    pacmanPosition = currentGameState.getPacmanPosition()
+    food = currentGameState.getFood()
+    ghostStates = currentGameState.getGhostStates()
+    scaredTime = [ghost.scaredTimer for ghost in ghostStates]
+
+    # Compute min distance between pacman and ghost
+    minGhostDist = float('inf')
+
+    for ghostState in ghostStates:
+        d = manhattanDistance(pacmanPosition, ghostState.configuration.pos)
+
+        if d < minGhostDist:
+            minGhostDist = d
+
+        # Avoid suicide
+        if minGhostDist == 0:
+            return -500
+
+    # Compute min distance between pacman and food
+    minFoodDist = float('inf')
+
+    for food in food.asList():
+        d = manhattanDistance(pacmanPosition, food)
+
+        if d < minFoodDist:
+            minFoodDist = d
+
+    return currentGameState.getScore() + 10.0 / minFoodDist - 20.0 / minGhostDist + sum(scaredTime)
 
 # Abbreviation
 better = betterEvaluationFunction
