@@ -339,7 +339,7 @@ def check_perceptron(tracker):
                 "PerceptronModel.get_prediction() should return 1 or -1, not {}".format(
                 prediction))
 
-            expected_prediction = np.asscalar(np.where(np.dot(point, p.get_weights().data.T) >= 0, 1, -1))
+            expected_prediction = (np.where(np.dot(point, p.get_weights().data.T) >= 0, 1, -1)).item()
             assert prediction == expected_prediction, (
                 "PerceptronModel.get_prediction() returned {}; expected {}".format(
                     prediction, expected_prediction))
